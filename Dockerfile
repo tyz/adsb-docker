@@ -36,7 +36,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -ex ; \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        librtlsdr0 libncurses6 zlib1g
+        librtlsdr0 libncurses6 zlib1g curl ca-certificates
+
+RUN mkdir -p /usr/local/share/tar1090 && \
+    curl -sLo /usr/local/share/tar1090/aircraft.csv.gz https://github.com/wiedehopf/tar1090-db/raw/csv/aircraft.csv.gz
 
 WORKDIR /app
 
