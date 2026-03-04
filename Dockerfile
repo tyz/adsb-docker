@@ -13,7 +13,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -ex ; \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        git build-essential pkg-config librtlsdr-dev libncurses5-dev zlib1g-dev libzstd-dev ca-certificates
+        git build-essential pkg-config cmake libncurses5-dev zlib1g-dev libzstd-dev ca-certificates libusb-1.0-0-dev
+
+
+RUN git clone --depth 1 https://github.com/rtlsdrblog/rtl-sdr-blog.git /tmp/rtl-sdr
+WORKDIR /tmp/rtl-sdr/build
+RUN cmake ../ -DINSTALL_UDEV_RULES=ON && \
+    make -j$(nproc) && \
+    make install && \
+    ldconfig
 
 WORKDIR /tmp/readsb
 
@@ -36,13 +44,19 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -ex ; \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        librtlsdr0 libncurses6 zlib1g curl ca-certificates
+        libncurses6 zlib1g libusb-1.0-0 curl ca-certificates
 
 RUN mkdir -p /usr/local/share/tar1090 && \
     curl -sLo /usr/local/share/tar1090/aircraft.csv.gz https://github.com/wiedehopf/tar1090-db/raw/csv/aircraft.csv.gz
 
 WORKDIR /app
 
+COPY --from=builder /usr/local/lib/librtlsdr.so.*.* /usr/local/lib
+COPY --from=builder /usr/local/bin/rtl_* /usr/local/bin
 COPY --from=builder /tmp/readsb/readsb .
+COPY docker/entrypoint.sh .
 
-ENTRYPOINT ["/app/readsb"]
+RUN ldconfig && \
+    chmod 755 entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]

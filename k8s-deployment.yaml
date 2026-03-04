@@ -21,17 +21,25 @@ spec:
       - args: [
           "--device-type", "rtlsdr",
           "--ppm", "3",
-          "--gain", "25",
+          "--gain", "auto-verbose",
           "--lat", "51.889997",
           "--lon", "1.476164",
-          "--lat", "52.39262973758624",
-          "--lon", "4.881165437400342",
           "--write-json", "/data",
           "--write-json-every", "1",
           "--write-json-globe-index",
+          "--write-globe-history", "/data/globe_history",
+          "--write-receiver-id-json",
           "--json-location-accuracy", "2",
-          "--net"
+          "--db-file", "/usr/local/share/tar1090/aircraft.csv.gz",
+          "--heatmap", "30",
+          "--net",
+          "--net-api-port", "30154",
+          "--tar1090-use-api",
         ]
+        env:
+          ENABLE_BIAS_T: false
+          HEYWHATSTHAT_ID: "ABC12DEF"
+          HEYWHATSTHAT_ID_ALTS: "5000,15000,30000"
         image: ghcr.io/tyz/readsb:latest
         imagePullPolicy: IfNotPresent
         name: readsb
