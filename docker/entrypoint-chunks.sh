@@ -1,3 +1,8 @@
 #!/bin/sh
 
-exec bash /chunks.sh ${RUNTIME_DIR-/srv/readsb/data/chunks} ${SRC_DIR-/srv/readsb/data}
+DATA_DIR=${SRC_DIR-/srv/readsb/data}
+CHUNKS_DIR=${DATA_DIR}/chunks
+
+[ -d ${CHUNKS_DIR} ] || mkdir ${CHUNKS_DIR}
+
+exec bash /chunks.sh ${CHUNKS_DIR} ${DATA_DIR}
