@@ -1,7 +1,9 @@
 #!/bin/sh
 
-AIRCRAFT_DB=/data/aircraft.csv.gz
-UPINTHEAIR=/data/upintheair.json
+UPINTHEAIR="${UPINTHEAIR:-/data/upintheair.json}"
+HEYWHATSTHAT_ID_ALTS="${HEYWHATSTHAT_ID_ALTS-30000}"
+AIRCRAFT_DB_DIR="${AIRCRAFT_DB_DIR:-/usr/local/share/tar1090}"
+INSTALL_AIRCRAFT_DB="${INSTALL_AIRCRAFT_DB-false}"
 
 if [ "${ENABLE_BIAS_T}" = "true" ]; then
     echo "Activating Bias-T for active antenna..."
@@ -11,15 +13,21 @@ if [ "${ENABLE_BIAS_T}" = "true" ]; then
 fi
 
 if [ "${HEYWHATSTHAT_ID}" -a ! -f ${UPINTHEAIR} ]; then
-    echo "Creating upintheair.json for altitudes ${HEYWHATSTHAT_ID_ALTS-30000}"
-    curl -sLo ${UPINTHEAIR} "http://www.heywhatsthat.com/api/upintheair.json?id=${HEYWHATSTHAT_ID}&refraction=0.25&alts=${HEYWHATSTHAT_ID_ALTS-30000}"
+    echo "Creating upintheair.json for altitudes ${HEYWHATSTHAT_ID_ALTS}"
+    curl -sLo ${UPINTHEAIR} "http://www.heywhatsthat.com/api/upintheair.json?id=${HEYWHATSTHAT_ID}&refraction=0.25&alts=${HEYWHATSTHAT_ID_ALTS}"
     echo
 fi
 
-if [ ! -f ${AIRCRAFT_DB} ]; then
-    echo "Downloading aircraft database"
-    curl -Lo ${AIRCRAFT_DB} https://github.com/wiedehopf/tar1090-db/raw/csv/aircraft.csv.gz
-    ls -lh ${AIRCRAFT_DB}
+if [ "${INSTALL_AIRCRAFT_DB}" = "true" ]; then
+    if [ -f ${AIRCRAFT_DB_DIR}/aircraft.csv.gz ]; then
+        echo "Updating aircraft database"
+        cd ${AIRCRAFT_DB_DIR}
+        git pull
+        cd -
+    else
+        echo "Installing aircraft database"
+        git clone --depth 1 --branch csv --single-branch https://github.com/wiedehopf/tar1090-db ${AIRCRAFT_DB_DIR}
+    fi
     echo
 fi
 
