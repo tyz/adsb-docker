@@ -14,6 +14,6 @@ RUN mkdir db2 && \
     curl -sL https://github.com/wiedehopf/tar1090-db/archive/refs/heads/master.tar.gz | \
     tar -xzvf - --strip-components=2 tar1090-db-master/db
 
-COPY ./docker/nginx-tar1090.conf /etc/nginx/conf.d/default.conf
+COPY ./nginx-tar1090.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 8080

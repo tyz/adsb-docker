@@ -4,10 +4,9 @@ on:
   push:
     branches: [master]
     paths:
-      - 'Dockerfile'
-      - 'Dockerfile.tar1090'
-      - 'Dockerfile.chunks'
-      - 'docker/**'
+      - 'chunks/**'
+      - 'readsb/**'
+      - 'tar1090/**'
       - '.github/workflows/build-arm64.yaml'
   workflow_dispatch:
 
@@ -15,7 +14,29 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      pull-requests: read
+    outputs:
+      packages: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            chunks:
+              - chunks/**
+              - .github/workflows/build-arm64.yaml
+            readsb:
+              - readsb/**
+              - .github/workflows/build-arm64.yaml
+            tar1090:
+              - tar1090/**
+              - .github/workflows/build-arm64.yaml
   docker-build:
+    needs: changes
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
@@ -25,17 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: adsb-readsb
-            file: Dockerfile
-            version_url: https://raw.githubusercontent.com/wiedehopf/readsb/master/version
-          - name: adsb-tar1090
-            file: Dockerfile.tar1090
-            version_url: https://raw.githubusercontent.com/wiedehopf/tar1090/master/version
-          - name: adsb-chunks
-            file: Dockerfile.chunks
-            version_url: https://raw.githubusercontent.com/wiedehopf/tar1090/master/version
-
+        package: ${{ fromJSON(needs.changes.outputs.packages) }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
@@ -43,7 +54,11 @@ jobs:
       - name: Extract the version
         id: version
         run: |
-          VERSION=$(curl -s ${{ matrix.version_url }})
+          case ${{ matrix.package }} in
+            readsb) NAME=readsb ;;
+            *) NAME=tar1090 ;;
+          esac
+          VERSION=$(curl -s https://raw.githubusercontent.com/wiedehopf/${NAME}/master/version)
           echo "app_version=${VERSION}" | tee -a $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
@@ -63,7 +78,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.name }}
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/adsb-${{ matrix.package }}
           tags: |
             type=raw,value=latest
             type=sha,prefix=sha-
@@ -72,11 +87,10 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ${{ matrix.file }}
+          context: ${{ matrix.package }}
           push: ${{ github.event_name != 'pull_request' }}
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=docker-${{ matrix.name }}
-          cache-to: type=gha,mode=max,scope=docker-${{ matrix.name }}
+          cache-from: type=gha,scope=docker-adsb-${{ matrix.package }}
+          cache-to: type=gha,mode=max,scope=docker-adsb-${{ matrix.package }}

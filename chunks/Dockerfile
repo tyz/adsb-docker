@@ -6,7 +6,7 @@ RUN apk add --cache=no bash jq
 
 ADD https://raw.githubusercontent.com/wiedehopf/tar1090/refs/heads/master/tar1090.sh /chunks.sh
 
-COPY docker/entrypoint-chunks.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 
 RUN chmod 755 /entrypoint.sh
 

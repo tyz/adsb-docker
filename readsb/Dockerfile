@@ -44,14 +44,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -ex ; \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        libncurses6 zlib1g libusb-1.0-0 git
+        libncurses6 zlib1g libusb-1.0-0 ca-certificates git
 
 WORKDIR /app
 
 COPY --from=builder /usr/local/lib/librtlsdr.so.*.* /usr/local/lib
 COPY --from=builder /usr/local/bin/rtl_* /usr/local/bin
 COPY --from=builder /tmp/readsb/readsb .
-COPY docker/entrypoint.sh .
+COPY entrypoint.sh .
 
 RUN ldconfig && \
     chmod 755 entrypoint.sh
