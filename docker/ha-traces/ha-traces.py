@@ -213,12 +213,23 @@ def analyze_traces(allow_list=[]):
     filecount = 0
     cache_hits = 0
     has_changes = False
+    dangling_nearby = []
 
     for root, dirs, files in os.walk(TRACES_DIR):
-        for file_pos, file in enumerate(files):
+        for file in files:
             aircraft = []
+            full_path = os.path.join(root, file)
 
-            if not file.endswith(".json") or not file.startswith("trace_full_"):
+            if not file.endswith(".json"):
+                continue
+
+            if file.startswith("nearby_"):
+                fname = os.path.join(root, f"trace_full_{file[7:-5]}.json")
+                if not os.path.isfile(fname):
+                    dangling_nearby.append(full_path)
+                continue
+
+            if not file.startswith("trace_full_"):
                 continue
 
             if allow_list:
@@ -230,9 +241,10 @@ def analyze_traces(allow_list=[]):
             else:
                 ignore_cache = False
 
-            full_path = os.path.join(root, file)
-            recent_path = os.path.join(root, f"trace_recent_{file[11:-5]}.json")
-            nearby_path = os.path.join(root, f"nearby_{file[11:-5]}.json")
+            cur_icao_hex = file[11:-5]
+
+            recent_path = os.path.join(root, f"trace_recent_{cur_icao_hex}.json")
+            nearby_path = os.path.join(root, f"nearby_{cur_icao_hex}.json")
 
             full_mtime = os.path.getmtime(full_path)
             recent_mtime = os.path.getmtime(recent_path)
@@ -344,8 +356,14 @@ def analyze_traces(allow_list=[]):
             if aircraft:
                 all_aircraft += aircraft
 
+    for f in dangling_nearby:
+        os.remove(f)
+
     if not has_changes:
-        logger.info(f"No changes. Scanned {filecount} new/changed files, loaded {cache_hits} from cache")
+        logger.info(
+            f"No changes. Scanned {filecount} new/changed files, loaded {cache_hits} from cache,"
+            f"deleted {len(dangling_nearby)} cache entries"
+        )
         return
 
     with open(OUTPUT_FILE, "w") as f:
@@ -354,7 +372,10 @@ def analyze_traces(allow_list=[]):
             "aircraft": all_aircraft,
         }
         json.dump(result, f, indent=2)
-        logger.info(f"Wrote {len(all_aircraft)} entries, scanned new/changed {filecount} files, loaded {cache_hits} from cache")
+        logger.info(
+            f"Wrote {len(all_aircraft)} entries, scanned new/changed {filecount} files, loaded {cache_hits} from cache,"
+            f"deleted {len(dangling_nearby)} cache entries"
+        )
 
 
 if __name__ == "__main__":
@@ -362,4 +383,6 @@ if __name__ == "__main__":
     allow_list = sys.argv[1:]
     while True:
         analyze_traces(allow_list=allow_list)
+        if not INTERVAL:
+            break
         time.sleep(INTERVAL)
