@@ -11,7 +11,7 @@ import time
 import logging
 
 from math import cos, asin, sqrt, pi
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 # CONFIG
 INTERVAL = int(os.getenv("INTERVAL", "10"))
@@ -19,6 +19,7 @@ HOME_LAT = float(os.getenv("HOME_LAT", "51.889997"))
 HOME_LON = float(os.getenv("HOME_LON", "1.476164"))
 TRACES_DIR = os.getenv("TRACES_DIR", "/srv/readsb-ads-b/volatile/traces")
 HEATMAP_DIR = os.getenv("HEATMAP_DIR", "/srv/readsb-ads-b/volatile/globe_history")
+CACHE_DIR = os.getenv("CACHE_DIR", "/srv/readsb-ads-b/volatile/.cache")
 OUTPUT_FILE = os.getenv("OUTPUT_FILE", "/srv/readsb-ads-b/volatile/flyovers.json")
 RADIUS_NM = float(os.getenv("RADIUS_NM", "0.53"))
 RADIUS_KM = RADIUS_NM * 1.852
@@ -57,9 +58,9 @@ photo_cache = {}
 
 class CachingRequests:
 
-    def __init__(self, key, cache_dir=".cache"):
+    def __init__(self, key, cache_dir=None):
         self.key = key
-        self.cache_dir = cache_dir
+        self.cache_dir = cache_dir if cache_dir else CACHE_DIR
 
     def _get_cache_path(self, url):
         return os.path.join(self.cache_dir, f"{self.key}.json")
@@ -92,12 +93,12 @@ def read_json(path, quiet=True, open_func=gzip.open) -> list[dict] | None:
 
 
 def ts_replay_str(ts) -> str:
-    dt = datetime.fromtimestamp(ts, datetime.UTC).
+    dt = datetime.fromtimestamp(ts, UTC)
     return (dt - timedelta(minutes=3)).strftime("%Y-%m-%d-%H:%M")
 
 
 def ts_heatmap_file(ts) -> str:
-    dt = datetime.fromtimestamp(ts, datetime.UTC).
+    dt = datetime.fromtimestamp(ts, UTC)
     fname = dt.hour * 2
     if dt.minute > 30:
         fname += 1
@@ -105,7 +106,7 @@ def ts_heatmap_file(ts) -> str:
 
 
 def ts_str(ts) -> str:
-    dt = datetime.fromtimestamp(ts, datetime.UTC).
+    dt = datetime.fromtimestamp(ts, UTC)
     return dt.strftime("%Y-%m-%d %H:%M:%S") if ts else "None"
 
 
